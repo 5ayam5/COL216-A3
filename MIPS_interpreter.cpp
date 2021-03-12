@@ -39,29 +39,45 @@ struct MIPS_Architecture
 	// perform add operation
 	int add(string r1, string r2, string r3)
 	{
-		if (!checkRegisters({r1, r2, r3}))
-			return 1;
-		registers[registerMap[r1]] = registers[registerMap[r2]] + registers[registerMap[r3]];
-		PCnext = PCcurr + 1;
-		return 0;
+		return op(r1, r2, r3, [&](int a, int b) { return a + b; });
 	}
 
 	// perform subtraction operation
 	int sub(string r1, string r2, string r3)
 	{
-		if (!checkRegisters({r1, r2, r3}))
-			return 1;
-		registers[registerMap[r1]] = registers[registerMap[r2]] - registers[registerMap[r3]];
-		PCnext = PCcurr + 1;
-		return 0;
+		return op(r1, r2, r3, [&](int a, int b) { return a - b; });
 	}
 
 	// perform multiplication operation
 	int mul(string r1, string r2, string r3)
 	{
+		return op(r1, r2, r3, [&](int a, int b) { return a * b; });
+	}
+
+	// perform the operation
+	int op(string r1, string r2, string r3, function<int(int, int)> operation)
+	{
 		if (!checkRegisters({r1, r2, r3}))
 			return 1;
-		registers[registerMap[r1]] = registers[registerMap[r2]] * registers[registerMap[r3]];
+		int r3Val;
+		if (r3[0] == '$')
+		{
+			if (!checkRegister(r3))
+				return 1;
+			r3Val = registers[registerMap[r3]];
+		}
+		else
+		{
+			try
+			{
+				r3Val = stoi(r3);
+			}
+			catch (exception &e)
+			{
+				return 3;
+			}
+		}
+		registers[registerMap[r1]] = operation(registers[registerMap[r2]], r3Val);
 		PCnext = PCcurr + 1;
 		return 0;
 	}
