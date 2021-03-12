@@ -6,7 +6,7 @@ using namespace std;
 struct MIPS_Architecture
 {
 	int registers[32] = {0}, PCcurr, PCnext;
-	unordered_map<string, function<int(MIPS_Architecture &, string &, string &, string &)>> instructions;
+	unordered_map<string, function<int(MIPS_Architecture &, string , string , string )>> instructions;
 	unordered_map<string, int> registerMap, address, data;
 	static const int MAX = (1 << 20);
 
@@ -16,7 +16,7 @@ struct MIPS_Architecture
 	}
 
 	// perform add operation
-	int add(string &r1, string &r2, string &r3)
+	int add(string r1, string r2, string r3)
 	{
 		if (!checkRegisters({r1, r2, r3}))
 			return 1;
@@ -26,7 +26,7 @@ struct MIPS_Architecture
 	}
 
 	// perform subtraction operation
-	int sub(string &r1, string &r2, string &r3)
+	int sub(string r1, string r2, string r3)
 	{
 		if (!checkRegisters({r1, r2, r3}))
 			return 1;
@@ -36,7 +36,7 @@ struct MIPS_Architecture
 	}
 
 	// perform multiplication operation
-	int mul(string &r1, string &r2, string &r3)
+	int mul(string r1, string r2, string r3)
 	{
 		if (!checkRegisters({r1, r2, r3}))
 			return 1;
@@ -46,19 +46,19 @@ struct MIPS_Architecture
 	}
 
 	// perform the beq operation
-	int beq(string &r1, string &r2, string &label)
+	int beq(string r1, string r2, string label)
 	{
-		return bOP(r1, r2, label, [](int &a, int &b) { return a == b; });
+		return bOP(r1, r2, label, [](int a, int b) { return a == b; });
 	}
 
 	// perform the bne operation
-	int bne(string &r1, string &r2, string &label)
+	int bne(string r1, string r2, string label)
 	{
-		return bOP(r1, r2, label, [](int &a, int &b) { return a != b; });
+		return bOP(r1, r2, label, [](int a, int b) { return a != b; });
 	}
 
 	// implements beq and bne by taking the comparator
-	int bOP(string &r1, string &r2, string &label, function<bool(int&, int&)> comp)
+	int bOP(string r1, string r2, string label, function<bool(int, int)> comp)
 	{
 		if (address.find(label) == address.end())
 			return 2;
@@ -83,14 +83,17 @@ struct MIPS_Architecture
 		PCnext = comp(registers[registerMap[r1]], r2Val) ? address[label] : PCcurr + 1;
 	}
 
-	// checks if the register is a valid one
-	inline bool checkRegister(string &r)
+	// implements slt operation
+	int slt(string r1, string r2, string r3)
 	{
-		return registerMap.find(r) != registerMap.end();
+		if (!checkRegisters({r1, r2, r3}))
+			return 1;
+		registers[registerMap[r3]] = registers[registerMap[r1]] < registers[registerMap[r2]];
+		return 0;
 	}
 
 	// perform the jump operation
-	int j(string &label)
+	int j(string label, string unused1 = "", string unused2 = "")
 	{
 		if (address.find(label) == address.end())
 			return 2;
@@ -99,29 +102,53 @@ struct MIPS_Architecture
 	}
 
 	// perform load word operation
-	int lw(string &r, string &location)
+	int lw(string r, string location, string unused1 = "")
 	{
 		if (!checkRegister(r))
 			return 1;
 		if (data.find(location) == data.end())
 			data[location] = 0;
 		registers[registerMap[r]] = data[location];
+		++PCnext;
 		return 0;
 	}
 
 	// perform store word operation
-	int sw(string &r, string &location)
+	int sw(string r, string location, string unused1 = "")
 	{
 		if (!checkRegister(r))
 			return 1;
 		data[location] = registers[registerMap[r]];
+		++PCnext;
 		return 0;
+	}
+
+	// perform add immediate operation
+	int addi(string r1, string r2, string num)
+	{
+		if (!checkRegisters({r1, r2}))
+			return 1;
+		try
+		{
+			registers[registerMap[r1]] = registers[registerMap[r2]] + stoi(num);
+			return 0;
+		}
+		catch (exception &e)
+		{
+			return 3;
+		}
+	}
+
+	// checks if the register is a valid one
+	inline bool checkRegister(string r)
+	{
+		return registerMap.find(r) != registerMap.end();
 	}
 
 	// checks if all of the registers are valid or not
 	bool checkRegisters(vector<string> regs)
 	{
-		return all_of(regs.begin(), regs.end(), [&](string &r) { return checkRegister(r); });
+		return all_of(regs.begin(), regs.end(), [&](string r) { return checkRegister(r); });
 	}
 
 	/*
