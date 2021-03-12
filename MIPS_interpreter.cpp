@@ -5,14 +5,35 @@ using namespace std;
 // struct to store the registers and the functions to be executed
 struct MIPS_Architecture
 {
-	int registers[32] = {0}, PCcurr, PCnext;
-	unordered_map<string, function<int(MIPS_Architecture &, string , string , string )>> instructions;
+	int registers[32] = {0}, PCcurr = 0, PCnext;
+	unordered_map<string, function<int(MIPS_Architecture &, string, string, string)>> instructions;
 	unordered_map<string, int> registerMap, address, data;
-	static const int MAX = (1 << 20);
+	static const int MAX = (1 << 18);
+	vector<vector<string>> commands;
 
+	// constructor to initialise the instruction set
 	MIPS_Architecture()
 	{
-		instructions = {{"add", &MIPS_Architecture::add}, {"sub", &MIPS_Architecture::sub}, {"mul", &MIPS_Architecture::mul}};
+		instructions = {{"add", &MIPS_Architecture::add}, {"sub", &MIPS_Architecture::sub}, {"mul", &MIPS_Architecture::mul}, {"beq", &MIPS_Architecture::beq}, {"bne", &MIPS_Architecture::bne}, {"slt", &MIPS_Architecture::slt}, {"j", &MIPS_Architecture::j}, {"lw", &MIPS_Architecture::lw}, {"sw", &MIPS_Architecture::sw}, {"addi", &MIPS_Architecture::addi}};
+
+		for (int i = 0; i < 32; ++i)
+			registerMap["$" + to_string(i)] = i;
+		registerMap["$zero"] = 0;
+		registerMap["$at"] = 1;
+		registerMap["$v0"] = 2;
+		registerMap["$v1"] = 3;
+		for (int i = 0; i < 4; ++i)
+			registerMap["$a" + to_string(i)] = i + 4;
+		for (int i = 0; i < 8; ++i)
+			registerMap["$t" + to_string(i)] = i + 8, registerMap["$s" + to_string(i)] = i + 16;
+		registerMap["$t8"] = 24;
+		registerMap["$t9"] = 25;
+		registerMap["$k0"] = 26;
+		registerMap["$k1"] = 27;
+		registerMap["$gp"] = 28;
+		registerMap["$sp"] = 29;
+		registerMap["$s8"] = 30;
+		registerMap["$ra"] = 31;
 	}
 
 	// perform add operation
@@ -60,6 +81,8 @@ struct MIPS_Architecture
 	// implements beq and bne by taking the comparator
 	int bOP(string r1, string r2, string label, function<bool(int, int)> comp)
 	{
+		if (address[0] < 65)
+			return 3;
 		if (address.find(label) == address.end())
 			return 2;
 		int r2Val;
@@ -81,6 +104,7 @@ struct MIPS_Architecture
 			}
 		}
 		PCnext = comp(registers[registerMap[r1]], r2Val) ? address[label] : PCcurr + 1;
+		return 0;
 	}
 
 	// implements slt operation
@@ -95,6 +119,8 @@ struct MIPS_Architecture
 	// perform the jump operation
 	int j(string label, string unused1 = "", string unused2 = "")
 	{
+		if (label[0] < 65)
+			return 3;
 		if (address.find(label) == address.end())
 			return 2;
 		PCnext = address[label];
@@ -106,6 +132,8 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
+		if (location[0] < 65)
+			return 3;
 		if (data.find(location) == data.end())
 			data[location] = 0;
 		registers[registerMap[r]] = data[location];
@@ -118,6 +146,8 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
+		if (location[0] < 65)
+			return 3;
 		data[location] = registers[registerMap[r]];
 		++PCnext;
 		return 0;
@@ -159,6 +189,23 @@ struct MIPS_Architecture
 	*/
 	void handleErrors(int code)
 	{
+		switch (code)
+		{
+		case 1:
+			cerr << "Invalid register provided or syntax error in providing register\n";
+			break;
+		case 2:
+			cerr << "Label used not defined\n";
+			break;
+		case 3:
+			cerr << "Syntax error encountered\n";
+			break;
+		default:
+			break;
+		}
+		for (auto &str: commands[PCcurr])
+			cerr << str << ' ';
+		cerr << '\n';
 	}
 };
 
