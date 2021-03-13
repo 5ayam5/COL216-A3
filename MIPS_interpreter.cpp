@@ -101,7 +101,7 @@ struct MIPS_Architecture
 	{
 		if (!checkRegisters({r1, r2, r3}) || registerMap[r1] == 0)
 			return 1;
-		registers[registerMap[r3]] = registers[registerMap[r1]] < registers[registerMap[r2]];
+		registers[registerMap[r1]] = registers[registerMap[r2]] < registers[registerMap[r3]];
 		PCnext = PCcurr + 1;
 		return 0;
 	}
@@ -214,6 +214,7 @@ struct MIPS_Architecture
 
 	/*
 		handle all exit codes:
+		0: correct execution
 		1: register provided is incorrect
 		2: invalid label
 		3: unaligned or invalid address
@@ -261,6 +262,7 @@ struct MIPS_Architecture
 		}
 	}
 
+	// parse the command assuming correctly formatted MIPS instruction (or label)
 	void parseCommand(string line)
 	{
 		// strip until before the comment begins
@@ -291,6 +293,7 @@ struct MIPS_Architecture
 		return;
 	}
 
+	// construct the commands vector from the input file
 	void constructCommands(ifstream &file)
 	{
 		string line;
@@ -299,6 +302,7 @@ struct MIPS_Architecture
 		file.close();
 	}
 
+	// execute the commands sequentially
 	void executeCommands()
 	{
 		if (commands.size() >= MAX / 4)
@@ -332,12 +336,13 @@ struct MIPS_Architecture
 		handleExit(0, clockCycles);
 	}
 
+	// print the register data in hexadecimal
 	void printRegisters(int clockCycle)
 	{
-		cout << "Cycle number: " << clockCycle << '\n';
+		cout << "Cycle number: " << clockCycle << '\n' << hex;
 		for (int i = 0; i < 32; ++i)
 			cout << registers[i] << ' ';
-		cout << '\n';
+		cout << dec << '\n';
 	}
 };
 
