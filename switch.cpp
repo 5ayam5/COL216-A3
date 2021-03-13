@@ -5,9 +5,8 @@ using namespace boost;
 
 int command(string line)
 {
-	string s;
 	char_separator<char> sep(", \t");
-	tokenizer<char_separator<char>> tokens(s, sep);
+	tokenizer<char_separator<char>> tokens(line, sep);
 	// boost::split(oper, cmd, [](char c) { return c == ','; });
 	/*
 		while (getline(ss,str,",")){

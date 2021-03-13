@@ -1,6 +1,8 @@
 #include <bits/stdc++.h>
+#include <boost/tokenizer.hpp>
 
 using namespace std;
+using namespace boost;
 
 // struct to store the registers and the functions to be executed
 struct MIPS_Architecture
@@ -145,7 +147,7 @@ struct MIPS_Architecture
 			registers[registerMap[r1]] = registers[registerMap[r2]] + stoi(num);
 			return 0;
 		}
-		catch (exception &e)
+		catch (std::exception &e)
 		{
 			return 3;
 		}
@@ -185,12 +187,42 @@ struct MIPS_Architecture
 		default:
 			break;
 		}
-		for (auto &str: commands[PCcurr])
+		for (auto &str : commands[PCcurr])
 			cerr << str << ' ';
 		cerr << '\n';
+	}
+
+	void parseCommand(string line)
+	{
+		tokenizer<char_separator<char>> tokens(line, char_separator<char>(", \t"));
+		vector<string> command;
+		for (auto &s : tokens)
+			command.push_back(s);
+		// empty line or a comment only line
+		if (command.empty() || command[0][0] == '#')
+			return;
+		string s = command.back();
+		command.pop_back();
+		tokens = tokenizer<char_separator<char>>(s, char_separator<char>("#"));
+		for (auto &s : tokens)
+		{
+			command.push_back(s);
+			commands.push_back(command);
+			return;
+		}
 	}
 };
 
 int main()
 {
+	MIPS_Architecture *mips = new MIPS_Architecture();
+	string line;
+	while (getline(cin, line))
+		mips->parseCommand(line);
+	for (auto &v : mips->commands)
+	{
+		for (auto &s : v)
+			cout << s << ' ';
+		cout << '\n';
+	}
 }
