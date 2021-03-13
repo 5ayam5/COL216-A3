@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{COL216 A-3 Write-up}
+\author{Sayam Sethi 2019CS10399 \\ Mallika Prabhakar 2019CS50440 }
+\date{March 2021}
+
+\usepackage{natbib}
+\usepackage{graphicx}
+
+\begin{document}
+
+\maketitle
+
+\section*{Problem Interpretation}
+ 
+\subsection*{Assumptions}
+Following are the assumptions which have been considered or given while attempting this assignment: 
+\begin{itemize}
+    \item Input file is a text file.
+    \item Instruction format follows the MIPS convention. The only valid instructions are- add, sub, mul, beq, bne, slt, j, lw, sw, addi.
+    \item Memory is $2^{20}$ Bytes and we have 32 registers.
+    \item Only the values printed for registers are in hexadecimal form.
+    \item Each instruction occupies 4 bytes and is executed in one clock cycle.
+    
+\end{itemize} 
+
+\subsection*{Basic Idea}
+We have to implement a C++ program which takes a text file as input which contains MIPS Assembly instructions. We read it line by line and tokenize each line appropriately. We then figure out the command and operate accordingly while updating the registers and incriminating clock cycles along with how many times certain operation was called. This information is finally printed. Errors are handled accordingly.
+
+
+\section*{Code Explanation}
+Following is the list of procedures employed along with their functioning:
+\begin{itemize}
+    \item \textbf{MIPS\_Architecture} - constructor
+    \item \textbf{add} - addition operation
+    \item \textbf{addi} - addi operation
+    \item \textbf{sub} - subtraction operation
+    \item \textbf{mul} - multiplication operation
+    \item \textbf{op} -  perform the operation based on the function passed (one of add, sub, mul)
+    \item \textbf{beq} - perform the beq operation
+    \item \textbf{bne} - perform the bne operation
+    \item \textbf{bOP} - implements beq and bne by taking the comparator
+    \item \textbf{slt} - performs slt operation
+    \item \textbf{j} -   perform the jump operation
+    \item \textbf{lw} - perform load word operation
+    \item \textbf{sw} - perform store word operation
+    \item \textbf{locateAddress} - locates the address
+    \item \textbf{checkLabel} - checks if label is valid
+    \item \textbf{checkRegister} - checks if the register is a valid one
+    \item \textbf{checkRegisters} - checks the validity of all the registers
+    \item \textbf{handleExit} - Handles possible errors according to output code
+    \item \textbf{parseCommand} - parses one line to figure out the command
+    \item \textbf{constructCommands} - parses the entire input file
+    \item \textbf{executeCommands} - runs the commands
+    \item \textbf{printRegisters} - prints clock cycle and values of registers
+    \item \textbf{main} - takes file as an input and executes the MIPS commands using all the functions mentioned above
+\end{itemize}
+
+\section*{Testing}
+We have extensively tested our code broadly on the following test cases \\
+\textbf{case 1:} empty file input \\
+\textbf{case 2:} random inputs \\
+\textbf{case 3:} for loop \\
+\textbf{case 4:} while loop \\
+\textbf{case 5:} erroneous inputs
+\end{document}
+%nice yay
