@@ -13,6 +13,7 @@ struct MIPS_Architecture
 	static const int MAX = (1 << 20);
 	int data[MAX] = {0};
 	vector<vector<string>> commands;
+	vector<int> commandCount;
 
 	// constructor to initialise the instruction set
 	MIPS_Architecture(ifstream &file)
@@ -39,6 +40,7 @@ struct MIPS_Architecture
 		registerMap["$ra"] = 31;
 
 		constructCommands(file);
+		commandCount.assign(commands.size(), 0);
 	}
 
 	// perform add operation
@@ -62,7 +64,7 @@ struct MIPS_Architecture
 	// perform the operation
 	int op(string r1, string r2, string r3, function<int(int, int)> operation)
 	{
-		if (!checkRegisters({r1, r2, r3}))
+		if (!checkRegisters({r1, r2, r3}) || registerMap[r1] == 0)
 			return 1;
 		registers[registerMap[r1]] = operation(registers[registerMap[r2]], registers[registerMap[r3]]);
 		PCnext = PCcurr + 1;
@@ -97,9 +99,10 @@ struct MIPS_Architecture
 	// implements slt operation
 	int slt(string r1, string r2, string r3)
 	{
-		if (!checkRegisters({r1, r2, r3}))
+		if (!checkRegisters({r1, r2, r3}) || registerMap[r1] == 0)
 			return 1;
 		registers[registerMap[r3]] = registers[registerMap[r1]] < registers[registerMap[r2]];
+		PCnext = PCcurr + 1;
 		return 0;
 	}
 
@@ -117,13 +120,13 @@ struct MIPS_Architecture
 	// perform load word operation
 	int lw(string r, string location, string unused1 = "")
 	{
-		if (!checkRegister(r))
+		if (!checkRegister(r) || registerMap[r] == 0)
 			return 1;
 		int address = locateAddress(location);
 		if (address < 0)
 			return abs(address);
 		registers[registerMap[r]] = data[address];
-		++PCnext;
+		PCnext = PCcurr + 1;
 		return 0;
 	}
 
@@ -136,7 +139,7 @@ struct MIPS_Architecture
 		if (address < 0)
 			return abs(address);
 		data[address] = registers[registerMap[r]];
-		++PCnext;
+		PCnext = PCcurr + 1;
 		return 0;
 	}
 
@@ -182,6 +185,7 @@ struct MIPS_Architecture
 		try
 		{
 			registers[registerMap[r1]] = registers[registerMap[r2]] + stoi(num);
+			PCnext = PCcurr + 1;
 			return 0;
 		}
 		catch (exception &e)
@@ -193,7 +197,7 @@ struct MIPS_Architecture
 	// checks if label is valid
 	inline bool checkLabel(string str)
 	{
-		return str.size() > 1 && str.back() == ':' && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
+		return str.size() > 0 && isalpha(str[0]) && all_of(++str.begin(), str.end(), [](char c) { return (bool)isalnum(c); });
 	}
 
 	// checks if the register is a valid one
@@ -209,14 +213,16 @@ struct MIPS_Architecture
 	}
 
 	/*
-		handle all possible errors:
+		handle all exit codes:
 		1: register provided is incorrect
 		2: invalid label
 		3: unaligned or invalid address
 		4: syntax error
+		5: commands exceed memory limit
 	*/
-	void handleErrors(int code)
+	void handleExit(int code, int cycleCount)
 	{
+		cout << '\n';
 		switch (code)
 		{
 		case 1:
@@ -228,13 +234,31 @@ struct MIPS_Architecture
 		case 3:
 			cerr << "Unaligned or invalid memory address specified\n";
 			break;
-		default:
+		case 4:
 			cerr << "Syntax error encountered\n";
 			break;
+		case 5:
+			cerr << "Memory limit exceeded\n";
+			break;
+		default:
+			break;
 		}
-		for (auto &str : commands[PCcurr])
-			cerr << str << ' ';
-		cerr << '\n';
+		if (code != 0)
+		{
+			cerr << "Error encountered at:\n";
+			for (auto &s : commands[PCcurr])
+				cerr << s << ' ';
+			cerr << '\n';
+		}
+		cout << "\nTotal number of cycles: " << cycleCount << '\n';
+		cout << "Count of instructions executed:\n";
+		for (int i = 0; i < (int)commands.size(); ++i)
+		{
+			cout << commandCount[i] << " times:\t";
+			for (auto &s : commands[i])
+				cout << s << ' ';
+			cout << '\n';
+		}
 	}
 
 	void parseCommand(string line)
@@ -249,17 +273,17 @@ struct MIPS_Architecture
 		if (command.empty())
 			return;
 		else if (command.size() == 1)
-			address[command[0]] = commands.size();
+			address[command[0].back() == ':' ? command[0].substr(0, command[0].size() - 1) : "?"] = commands.size();
 		else if (command[0].back() == ':')
 		{
-			address[command[0]] = commands.size();
+			address[command[0].substr(0, command[0].size() - 1)] = commands.size();
 			commands.push_back(vector<string>(command.begin() + 1, command.end()));
 		}
 		else if (command[0].find(':') != string::npos)
 		{
-			int idx = command[0].find(':') + 1;
+			int idx = command[0].find(':');
 			address[command[0].substr(0, idx)] = commands.size();
-			command[0] = command[0].substr(idx);
+			command[0] = command[0].substr(idx + 1);
 			commands.push_back(command);
 		}
 		else
@@ -273,16 +297,47 @@ struct MIPS_Architecture
 		while (getline(file, line))
 			parseCommand(line);
 		file.close();
-		for (auto &v : commands)
-		{
-			for (auto &s : v)
-				cout << s << ' ';
-			cout << '\n';
-		}
 	}
 
 	void executeCommands()
 	{
+		if (commands.size() >= MAX / 4)
+		{
+			handleExit(5, 0);
+			return;
+		}
+
+		int clockCycles = 0;
+		while (PCcurr < commands.size())
+		{
+			++clockCycles;
+			vector<string> &command = commands[PCcurr];
+			while (command.size() < 4)
+				command.push_back("");
+			if (instructions.find(command[0]) == instructions.end())
+			{
+				handleExit(4, clockCycles);
+				return;
+			}
+			int ret = instructions[command[0]](*this, command[1], command[2], command[3]);
+			if (ret != 0)
+			{
+				handleExit(ret, clockCycles);
+				return;
+			}
+			++commandCount[PCcurr];
+			PCcurr = PCnext;
+			printRegisters(clockCycles);
+		}
+		handleExit(0, clockCycles);
+	}
+
+	void printRegisters(int clockCycle)
+	{
+		cout << "Cycle number: " << clockCycle << '\n';
+		for (int i = 0; i < 32; ++i)
+			cout << registers[i] << ' ';
+		cout << '\n';
 	}
 };
 

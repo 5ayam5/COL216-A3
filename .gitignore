@@ -1,4 +1,4 @@
-!*.cpp
-!makefile
-!.gitignore
-*
+MIPS_interpreter
+in.asm
+out
+.vscode
