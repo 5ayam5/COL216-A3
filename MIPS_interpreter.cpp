@@ -1,6 +1,6 @@
-//COL216 Assignment 3
-//Sayam Sethi 		2019CS10399
-//Mallika Prabhakar 2019CS50440
+// COL216 Assignment 3
+// Sayam Sethi 		2019CS10399
+// Mallika Prabhakar 2019CS50440
 
 #include <bits/stdc++.h>
 #include <boost/tokenizer.hpp>
