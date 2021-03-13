@@ -7,7 +7,6 @@
 
 using namespace std;
 
-
 // struct to store the registers and the functions to be executed
 struct MIPS_Architecture
 {
@@ -258,7 +257,8 @@ struct MIPS_Architecture
 		cout << "\nFollowing are the non-zero data values:\n";
 		for (int i = 0; i < MAX / 4; ++i)
 			if (data[i] != 0)
-				cout << 4 * i << '-' << 4 * i + 3 << hex << ": " << data[i] << '\n' << dec;
+				cout << 4 * i << '-' << 4 * i + 3 << hex << ": " << data[i] << '\n'
+					 << dec;
 		cout << "\nTotal number of cycles: " << cycleCount << '\n';
 		cout << "Count of instructions executed:\n";
 		for (int i = 0; i < (int)commands.size(); ++i)
@@ -361,7 +361,8 @@ struct MIPS_Architecture
 	// print the register data in hexadecimal
 	void printRegisters(int clockCycle)
 	{
-		cout << "Cycle number: " << clockCycle << '\n' << hex;
+		cout << "Cycle number: " << clockCycle << '\n'
+			 << hex;
 		for (int i = 0; i < 32; ++i)
 			cout << registers[i] << ' ';
 		cout << dec << '\n';
