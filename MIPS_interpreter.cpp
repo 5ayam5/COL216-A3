@@ -59,25 +59,7 @@ struct MIPS_Architecture
 	{
 		if (!checkRegisters({r1, r2, r3}))
 			return 1;
-		int r3Val;
-		if (r3[0] == '$')
-		{
-			if (!checkRegister(r3))
-				return 1;
-			r3Val = registers[registerMap[r3]];
-		}
-		else
-		{
-			try
-			{
-				r3Val = stoi(r3);
-			}
-			catch (exception &e)
-			{
-				return 3;
-			}
-		}
-		registers[registerMap[r1]] = operation(registers[registerMap[r2]], r3Val);
+		registers[registerMap[r1]] = operation(registers[registerMap[r2]], registers[registerMap[r3]]);
 		PCnext = PCcurr + 1;
 		return 0;
 	}
@@ -97,29 +79,13 @@ struct MIPS_Architecture
 	// implements beq and bne by taking the comparator
 	int bOP(string r1, string r2, string label, function<bool(int, int)> comp)
 	{
-		if (address[0] < 65)
+		if (label[0] < 65)
 			return 3;
 		if (address.find(label) == address.end())
 			return 2;
-		int r2Val;
-		if (r2[0] == '$')
-		{
-			if (!checkRegister(r2))
-				return 1;
-			r2Val = registers[registerMap[r2]];
-		}
-		else
-		{
-			try
-			{
-				r2Val = stoi(r2);
-			}
-			catch (exception &e)
-			{
-				return 3;
-			}
-		}
-		PCnext = comp(registers[registerMap[r1]], r2Val) ? address[label] : PCcurr + 1;
+		if (!checkRegisters({r1, r2}))
+			return 1;
+		PCnext = comp(registers[registerMap[r1]], registers[registerMap[r2]]) ? address[label] : PCcurr + 1;
 		return 0;
 	}
 

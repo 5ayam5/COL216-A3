@@ -1,3 +1,4 @@
-MIPS_interpreter
-in.asm
-out
+!*.cpp
+!makefile
+!.gitignore
+*

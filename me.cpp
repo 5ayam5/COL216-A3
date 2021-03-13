@@ -6,7 +6,7 @@ using namespace std;
 struct MIPS_Architecture
 {
 	int registers[32] = {0}, PCcurr, PCnext;
-	unordered_map<string, function<int(MIPS_Architecture &, string , string , string )>> instructions;
+	unordered_map<string, function<int(MIPS_Architecture &, string, string, string)>> instructions;
 	unordered_map<string, int> registerMap, address, data;
 	static const int MAX = (1 << 20);
 
@@ -164,60 +164,40 @@ struct MIPS_Architecture
 	int command(string line)
 	{
 
-	    int sep=line.find(" ");
-	    string opn = line.substr(0,sep);
-	    string cmd = line.substr(sep,line.length());
-	    vector<string> oper;
-	    stringstream ss(cmd);
-	    cout<<cmd<<"\n";
-        /*
+		int sep = line.find(" ");
+		string opn = line.substr(0, sep);
+		string cmd = line.substr(sep, line.length());
+		vector<string> oper;
+		stringstream ss(cmd);
+		cout << cmd << "\n";
+		/*
 	    string str;
 	    while (getline(ss,str,",")){
             oper.push_back(str);
 	    }*/
-        return 0;
-
-
+		return 0;
 	}
 };
 
-
-
-
-
-
-
-
 int main()
 {
-    vector<string> program;
-    string fileName;
-    cin>>fileName;
-    ifstream file(fileName);
-    if (file.is_open()){
-        string line;
-        while (getline(file,line)){
-            program.push_back(line);
-        }
-        file.close();
+	vector<string> program;
+	string fileName;
+	cin >> fileName;
+	ifstream file(fileName);
+	if (file.is_open())
+	{
+		string line;
+		while (getline(file, line))
+		{
+			program.push_back(line);
+		}
+		file.close();
 
-        MIPS_Architecture* trial = new MIPS_Architecture();
-        for (int i=0; i<program.size();i++)
-        {
-            trial.command(program[i]);
-        }
-
-
-
-
-
-
-
-    }
-
-
-
-
-
-
+		MIPS_Architecture *trial = new MIPS_Architecture();
+		for (int i = 0; i < program.size(); i++)
+		{
+			trial->command(program[i]);
+		}
+	}
 }
