@@ -15,7 +15,7 @@ struct MIPS_Architecture
 	unordered_map<string, function<int(MIPS_Architecture &, string, string, string)>> instructions;
 	unordered_map<string, int> registerMap, address;
 	static const int MAX = (1 << 20);
-	int data[MAX] = {0};
+	int data[MAX >> 2] = {0};
 	vector<vector<string>> commands;
 	vector<int> commandCount;
 
@@ -92,7 +92,7 @@ struct MIPS_Architecture
 	{
 		if (!checkLabel(label))
 			return 4;
-		if (address.find(label) == address.end())
+		if (address.find(label) == address.end() || address[label] == -1)
 			return 2;
 		if (!checkRegisters({r1, r2}))
 			return 1;
@@ -115,7 +115,7 @@ struct MIPS_Architecture
 	{
 		if (!checkLabel(label))
 			return 4;
-		if (address.find(label) == address.end())
+		if (address.find(label) == address.end() || address[label] == -1)
 			return 2;
 		PCnext = address[label];
 		return 0;
@@ -171,7 +171,7 @@ struct MIPS_Architecture
 		try
 		{
 			int address = stoi(location);
-			if (address % 4)
+			if (address % 4 || address < int(4 * commands.size()) || address >= MAX)
 				return -3;
 			return address / 4;
 		}
@@ -201,7 +201,7 @@ struct MIPS_Architecture
 	// checks if label is valid
 	inline bool checkLabel(string str)
 	{
-		return str.size() > 0 && isalpha(str[0]) && all_of(++str.begin(), str.end(), [](char c) { return (bool)isalnum(c); });
+		return str.size() > 0 && isalpha(str[0]) && all_of(++str.begin(), str.end(), [](char c) { return (bool)isalnum(c); }) && instructions.find(str) == instructions.end();
 	}
 
 	// checks if the register is a valid one
@@ -234,7 +234,7 @@ struct MIPS_Architecture
 			cerr << "Invalid register provided or syntax error in providing register\n";
 			break;
 		case 2:
-			cerr << "Label used not defined\n";
+			cerr << "Label used not defined or defined too many times\n";
 			break;
 		case 3:
 			cerr << "Unaligned or invalid memory address specified\n";
@@ -255,6 +255,10 @@ struct MIPS_Architecture
 				cerr << s << ' ';
 			cerr << '\n';
 		}
+		cout << "\nFollowing are the non-zero data values:\n";
+		for (int i = 0; i < MAX / 4; ++i)
+			if (data[i] != 0)
+				cout << 4 * i << '-' << 4 * i + 3 << hex << ": " << data[i] << '\n' << dec;
 		cout << "\nTotal number of cycles: " << cycleCount << '\n';
 		cout << "Count of instructions executed:\n";
 		for (int i = 0; i < (int)commands.size(); ++i)
@@ -279,16 +283,30 @@ struct MIPS_Architecture
 		if (command.empty())
 			return;
 		else if (command.size() == 1)
-			address[command[0].back() == ':' ? command[0].substr(0, command[0].size() - 1) : "?"] = commands.size();
+		{
+			string label = command[0].back() == ':' ? command[0].substr(0, command[0].size() - 1) : "?";
+			if (address.find(label) == address.end())
+				address[label] = commands.size();
+			else
+				address[label] = -1;
+		}
 		else if (command[0].back() == ':')
 		{
-			address[command[0].substr(0, command[0].size() - 1)] = commands.size();
+			string label = command[0].substr(0, command[0].size() - 1);
+			if (address.find(label) == address.end())
+				address[label] = commands.size();
+			else
+				address[label] = -1;
 			commands.push_back(vector<string>(command.begin() + 1, command.end()));
 		}
 		else if (command[0].find(':') != string::npos)
 		{
 			int idx = command[0].find(':');
-			address[command[0].substr(0, idx)] = commands.size();
+			string label = command[0].substr(0, idx);
+			if (address.find(label) == address.end())
+				address[label] = commands.size();
+			else
+				address[label] = -1;
 			command[0] = command[0].substr(idx + 1);
 			commands.push_back(command);
 		}
