@@ -310,6 +310,20 @@ struct MIPS_Architecture
 			command[0] = command[0].substr(idx + 1);
 			commands.push_back(command);
 		}
+		else if (command[1][0] == ':')
+		{
+			if (address.find(command[0]) == address.end())
+				address[command[0]] = commands.size();
+			else
+				address[command[0]] = -1;
+			command[1] = command[1].substr(1);
+			if (command[1] == "")
+				command.erase(command.begin(), command.begin() + 2);
+			else
+				command.erase(command.begin(), command.begin() + 1);
+			if (!command.empty())
+				commands.push_back(command);
+		}
 		else
 			commands.push_back(command);
 		return;
