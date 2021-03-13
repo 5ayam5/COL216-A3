@@ -14,7 +14,7 @@ struct MIPS_Architecture
 	vector<vector<string>> commands;
 
 	// constructor to initialise the instruction set
-	MIPS_Architecture()
+	MIPS_Architecture(ifstream &file)
 	{
 		instructions = {{"add", &MIPS_Architecture::add}, {"sub", &MIPS_Architecture::sub}, {"mul", &MIPS_Architecture::mul}, {"beq", &MIPS_Architecture::beq}, {"bne", &MIPS_Architecture::bne}, {"slt", &MIPS_Architecture::slt}, {"j", &MIPS_Architecture::j}, {"lw", &MIPS_Architecture::lw}, {"sw", &MIPS_Architecture::sw}, {"addi", &MIPS_Architecture::addi}};
 
@@ -36,6 +36,8 @@ struct MIPS_Architecture
 		registerMap["$sp"] = 29;
 		registerMap["$s8"] = 30;
 		registerMap["$ra"] = 31;
+
+		constructCommands(file);
 	}
 
 	// perform add operation
@@ -211,18 +213,36 @@ struct MIPS_Architecture
 			return;
 		}
 	}
+
+	void constructCommands(ifstream &file)
+	{
+		string line;
+		while (getline(file, line))
+			parseCommand(line);
+		file.close();
+		for (auto &v : commands)
+		{
+			for (auto &s : v)
+				cout << s << ' ';
+			cout << '\n';
+		}
+	}
 };
 
-int main()
+int main(int argc, char *argv[])
 {
-	MIPS_Architecture *mips = new MIPS_Architecture();
-	string line;
-	while (getline(cin, line))
-		mips->parseCommand(line);
-	for (auto &v : mips->commands)
+	if (argc != 2)
 	{
-		for (auto &s : v)
-			cout << s << ' ';
-		cout << '\n';
+		cerr << "Required argument: file_name\n./MIPS_interpreter <file name>\n";
+		return 0;
+	}
+	ifstream file(argv[1]);
+	MIPS_Architecture *mips;
+	if (file.is_open())
+		MIPS_Architecture *mips = new MIPS_Architecture(file);
+	else
+	{
+		cerr << "File could not be opened. Terminating...\n";
+		return 0;
 	}
 }
