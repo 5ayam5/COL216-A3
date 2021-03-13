@@ -2,15 +2,16 @@
 #include <boost/tokenizer.hpp>
 
 using namespace std;
-using namespace boost;
+
 
 // struct to store the registers and the functions to be executed
 struct MIPS_Architecture
 {
 	int registers[32] = {0}, PCcurr = 0, PCnext;
 	unordered_map<string, function<int(MIPS_Architecture &, string, string, string)>> instructions;
-	unordered_map<string, int> registerMap, address, data;
-	static const int MAX = (1 << 18);
+	unordered_map<string, int> registerMap, address;
+	static const int MAX = (1 << 20);
+	int data[MAX] = {0};
 	vector<vector<string>> commands;
 
 	// constructor to initialise the instruction set
@@ -83,8 +84,8 @@ struct MIPS_Architecture
 	// implements beq and bne by taking the comparator
 	int bOP(string r1, string r2, string label, function<bool(int, int)> comp)
 	{
-		if (!checkStr(label, false))
-			return 3;
+		if (!checkLabel(label))
+			return 4;
 		if (address.find(label) == address.end())
 			return 2;
 		if (!checkRegisters({r1, r2}))
@@ -105,8 +106,8 @@ struct MIPS_Architecture
 	// perform the jump operation
 	int j(string label, string unused1 = "", string unused2 = "")
 	{
-		if (!checkStr(label, false))
-			return 3;
+		if (!checkLabel(label))
+			return 4;
 		if (address.find(label) == address.end())
 			return 2;
 		PCnext = address[label];
@@ -118,11 +119,10 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
-		if (!checkStr(location, true))
-			return 3;
-		if (data.find(location) == data.end())
-			data[location] = 0;
-		registers[registerMap[r]] = data[location];
+		int address = locateAddress(location);
+		if (address < 0)
+			return abs(address);
+		registers[registerMap[r]] = data[address];
 		++PCnext;
 		return 0;
 	}
@@ -132,11 +132,46 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
-		if (!checkStr(location, true))
-			return 3;
-		data[location] = registers[registerMap[r]];
+		int address = locateAddress(location);
+		if (address < 0)
+			return abs(address);
+		data[address] = registers[registerMap[r]];
 		++PCnext;
 		return 0;
+	}
+
+	int locateAddress(string location)
+	{
+		if (location.back() == ')')
+		{
+			try
+			{
+				int lparen = location.find('('), offset = stoi(lparen == 0 ? "0" : location.substr(0, lparen));
+				string reg = location.substr(lparen + 1);
+				reg.pop_back();
+				if (!checkRegister(reg))
+					return -3;
+				int address = registers[registerMap[reg]] + offset;
+				if (address % 4 || address < int(4 * commands.size()) || address >= MAX)
+					return -3;
+				return address / 4;
+			}
+			catch (exception &e)
+			{
+				return -4;
+			}
+		}
+		try
+		{
+			int address = stoi(location);
+			if (address % 4)
+				return -3;
+			return address / 4;
+		}
+		catch (exception &e)
+		{
+			return -4;
+		}
 	}
 
 	// perform add immediate operation
@@ -149,16 +184,16 @@ struct MIPS_Architecture
 			registers[registerMap[r1]] = registers[registerMap[r2]] + stoi(num);
 			return 0;
 		}
-		catch (std::exception &e)
+		catch (exception &e)
 		{
-			return 3;
+			return 4;
 		}
 	}
 
-	// checks if label/data is valid
-	inline bool checkStr(string str, bool data)
+	// checks if label is valid
+	inline bool checkLabel(string str)
 	{
-		return (data || str.size() > 1) && (str.back() == ':' ^ data) && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
+		return str.size() > 1 && str.back() == ':' && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
 	}
 
 	// checks if the register is a valid one
@@ -177,7 +212,8 @@ struct MIPS_Architecture
 		handle all possible errors:
 		1: register provided is incorrect
 		2: invalid label
-		3: syntax error
+		3: unaligned or invalid address
+		4: syntax error
 	*/
 	void handleErrors(int code)
 	{
@@ -190,9 +226,10 @@ struct MIPS_Architecture
 			cerr << "Label used not defined\n";
 			break;
 		case 3:
-			cerr << "Syntax error encountered\n";
+			cerr << "Unaligned or invalid memory address specified\n";
 			break;
 		default:
+			cerr << "Syntax error encountered\n";
 			break;
 		}
 		for (auto &str : commands[PCcurr])
@@ -205,7 +242,7 @@ struct MIPS_Architecture
 		// strip until before the comment begins
 		line = line.substr(0, line.find('#'));
 		vector<string> command;
-		tokenizer<char_separator<char>> tokens(line, char_separator<char>(", \t"));
+		boost::tokenizer<boost::char_separator<char>> tokens(line, boost::char_separator<char>(", \t"));
 		for (auto &s : tokens)
 			command.push_back(s);
 		// empty line or a comment only line
@@ -246,7 +283,6 @@ struct MIPS_Architecture
 
 	void executeCommands()
 	{
-		
 	}
 };
 
@@ -260,10 +296,13 @@ int main(int argc, char *argv[])
 	ifstream file(argv[1]);
 	MIPS_Architecture *mips;
 	if (file.is_open())
-		MIPS_Architecture *mips = new MIPS_Architecture(file);
+		mips = new MIPS_Architecture(file);
 	else
 	{
 		cerr << "File could not be opened. Terminating...\n";
 		return 0;
 	}
+
+	mips->executeCommands();
+	return 0;
 }
