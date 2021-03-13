@@ -83,7 +83,7 @@ struct MIPS_Architecture
 	// implements beq and bne by taking the comparator
 	int bOP(string r1, string r2, string label, function<bool(int, int)> comp)
 	{
-		if (label[0] < 65)
+		if (!checkStr(label, false))
 			return 3;
 		if (address.find(label) == address.end())
 			return 2;
@@ -105,7 +105,7 @@ struct MIPS_Architecture
 	// perform the jump operation
 	int j(string label, string unused1 = "", string unused2 = "")
 	{
-		if (label[0] < 65)
+		if (!checkStr(label, false))
 			return 3;
 		if (address.find(label) == address.end())
 			return 2;
@@ -118,7 +118,7 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
-		if (location[0] < 65)
+		if (!checkStr(location, true))
 			return 3;
 		if (data.find(location) == data.end())
 			data[location] = 0;
@@ -132,7 +132,7 @@ struct MIPS_Architecture
 	{
 		if (!checkRegister(r))
 			return 1;
-		if (location[0] < 65)
+		if (!checkStr(location, true))
 			return 3;
 		data[location] = registers[registerMap[r]];
 		++PCnext;
@@ -153,6 +153,12 @@ struct MIPS_Architecture
 		{
 			return 3;
 		}
+	}
+
+	// checks if label/data is valid
+	inline bool checkStr(string str, bool data)
+	{
+		return str.size() > 1 && (str.back() == ':' ^ data) && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
 	}
 
 	// checks if the register is a valid one
@@ -196,22 +202,32 @@ struct MIPS_Architecture
 
 	void parseCommand(string line)
 	{
-		tokenizer<char_separator<char>> tokens(line, char_separator<char>(", \t"));
+		// strip until before the comment begins
+		line = line.substr(0, line.find('#'));
 		vector<string> command;
+		tokenizer<char_separator<char>> tokens(line, char_separator<char>(", \t"));
 		for (auto &s : tokens)
 			command.push_back(s);
 		// empty line or a comment only line
-		if (command.empty() || command[0][0] == '#')
+		if (command.empty())
 			return;
-		string s = command.back();
-		command.pop_back();
-		tokens = tokenizer<char_separator<char>>(s, char_separator<char>("#"));
-		for (auto &s : tokens)
+		else if (command.size() == 1)
+			address[command[0]] = commands.size();
+		else if (command[0].back() == ':')
 		{
-			command.push_back(s);
-			commands.push_back(command);
-			return;
+			address[command[0]] = commands.size();
+			commands.push_back(vector<string>(command.begin() + 1, command.end()));
 		}
+		else if (command[0].find(':') != string::npos)
+		{
+			int idx = command[0].find(':') + 1;
+			address[command[0].substr(0, idx)] = commands.size();
+			command[0] = command[0].substr(idx);
+			commands.push_back(command);
+		}
+		else
+			commands.push_back(command);
+		return;
 	}
 
 	void constructCommands(ifstream &file)
