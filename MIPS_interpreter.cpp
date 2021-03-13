@@ -158,7 +158,7 @@ struct MIPS_Architecture
 	// checks if label/data is valid
 	inline bool checkStr(string str, bool data)
 	{
-		return str.size() > 1 && (str.back() == ':' ^ data) && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
+		return (data || str.size() > 1) && (str.back() == ':' ^ data) && isalpha(str[0]) && all_of(++str.begin(), --str.end(), [](char c) { return (bool)isalnum(c); });
 	}
 
 	// checks if the register is a valid one
@@ -242,6 +242,11 @@ struct MIPS_Architecture
 				cout << s << ' ';
 			cout << '\n';
 		}
+	}
+
+	void executeCommands()
+	{
+		
 	}
 };
 
