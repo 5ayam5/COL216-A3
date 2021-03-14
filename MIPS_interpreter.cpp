@@ -289,6 +289,7 @@ struct MIPS_Architecture
 				address[label] = commands.size();
 			else
 				address[label] = -1;
+			command.clear();
 		}
 		else if (command[0].back() == ':')
 		{
@@ -297,7 +298,7 @@ struct MIPS_Architecture
 				address[label] = commands.size();
 			else
 				address[label] = -1;
-			commands.push_back(vector<string>(command.begin() + 1, command.end()));
+			command = vector<string>(command.begin() + 1, command.end());
 		}
 		else if (command[0].find(':') != string::npos)
 		{
@@ -308,7 +309,6 @@ struct MIPS_Architecture
 			else
 				address[label] = -1;
 			command[0] = command[0].substr(idx + 1);
-			commands.push_back(command);
 		}
 		else if (command[1][0] == ':')
 		{
@@ -321,12 +321,14 @@ struct MIPS_Architecture
 				command.erase(command.begin(), command.begin() + 2);
 			else
 				command.erase(command.begin(), command.begin() + 1);
-			if (!command.empty())
-				commands.push_back(command);
 		}
-		else
-			commands.push_back(command);
-		return;
+		if (command.empty())
+			return;
+		if (command.size() > 4)
+			for (int i = 4; i < (int)command.size(); ++i)
+				command[3] += " " + command[i];
+		command.resize(4);
+		commands.push_back(command);
 	}
 
 	// construct the commands vector from the input file
@@ -352,8 +354,6 @@ struct MIPS_Architecture
 		{
 			++clockCycles;
 			vector<string> &command = commands[PCcurr];
-			while (command.size() < 4)
-				command.push_back("");
 			if (instructions.find(command[0]) == instructions.end())
 			{
 				handleExit(4, clockCycles);
