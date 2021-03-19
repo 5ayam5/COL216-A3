@@ -183,7 +183,7 @@ struct MIPS_Architecture
 	// perform add immediate operation
 	int addi(string r1, string r2, string num)
 	{
-		if (!checkRegisters({r1, r2}))
+		if (!checkRegisters({r1, r2}) || registerMap[r1] == 0)
 			return 1;
 		try
 		{
